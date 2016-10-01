@@ -28,4 +28,10 @@ public class MapController {
 		model.addAttribute("LatitudeLongitude", latitude + " " + longitude);
 		return "list";
 	}
+	
+	@RequestMapping(value="/map", method = RequestMethod.GET)
+	public String getMap(@RequestParam String latitude,@RequestParam String longitude,ModelMap model) {
+		System.out.println("LatitudeLongitude: " + latitude + " " + longitude);
+		return "redirect:/resources/map.html";
+	}
 }
