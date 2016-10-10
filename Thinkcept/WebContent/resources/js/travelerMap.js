@@ -2,9 +2,24 @@ var map;
 var infowindow;
 var markers = [];
 var startLatLng;
-var endObj = {
+var startObj = {
 	lat : 1.0,
 	lng : 1.0
+};
+var endObj = {
+		lat : 1.0,
+		lng : 1.0
+	};
+
+var direction = {
+	start: {
+		lat:1,
+		lng:1
+	},
+	end: {
+		lat:1,
+		lng:1
+	}
 };
 var directionsService;
 var directionsDisplay;
@@ -18,7 +33,7 @@ function initMap() {
 	};
 	pyrmont.lat = Number(latitude);
 	pyrmont.lng = Number(longitude);
-	
+	startObj = pyrmont;
 	
 	map = new google.maps.Map(document.getElementById('map'), {
 		center : pyrmont,
@@ -32,15 +47,44 @@ function initMap() {
 	}, function(results, status) {
 		if (status === 'OK') {
 			if (results[1]) {
-				map.setZoom(16);
+				map.setZoom(18);
 				var marker = new google.maps.Marker({
 					position : pyrmont,
 					animation : google.maps.Animation.BOUNCE,
 					map : map,
+					draggable: true
 				});
-
+				//alert(this.position);
+//				var url = "http://maps.googleapis.com/maps/api/geocode/json?latlng=" + pyrmont.lat + "," + pyrmont.lng+"&sensor=true";
+//				findAddressByLatLon(url, "src");
+				
+				//document.getElementById('src').value = results[1].formatted_address;
 				infowindow.setContent(results[1].formatted_address);
 				infowindow.open(map, marker);
+				
+				direction.start.lat = pyrmont.lat;
+				direction.start.lng = pyrmont.lng;
+				
+				var geocoder = new google.maps.Geocoder;
+
+				geocoder.geocode({'location': pyrmont}, function(results, status) {
+				    if (status === google.maps.GeocoderStatus.OK) {
+				      if (results[1]) {
+				        console.log(results[1].place_id);
+				        document.getElementById('src').value = results[1].place_id;
+				      } else {
+				        window.alert('No results found');
+				      }
+				    } else {
+				      window.alert('Geocoder failed due to: ' + status);
+				    }
+				  });
+				
+				google.maps.event.addListener(marker, 'click', function() {
+					console.log(this.position.toJSON());
+					infowindow.open(map, this);
+					document.getElementById('src').value = place.place_id;//place.name + ", San Francisco, CA 94128, United States";
+				});
 			} else {
 				window.alert('No results found');
 			}
@@ -79,20 +123,29 @@ function callback(results, status) {
 function createMarker(place) {
 
 	var placeLoc = place.geometry.location;
-	// alert(place.geometry.location);
+	//alert(place.geometry.location);
 	var marker = new google.maps.Marker({
 		map : map,
 		animation : google.maps.Animation.DROP,
 		icon : 'http://maps.google.com/mapfiles/ms/icons/purple-dot.png',
-		position : place.geometry.location
+		position : place.geometry.location,
+		draggable: true
 	});
 	markers.push(marker);
 	google.maps.event.addListener(marker, 'click', function() {
+		console.log("End: " + this.position.toJSON());
 		infowindow.setContent(place.name+'<p><input type=button value=Route onclick=getRoute()>&nbsp;&nbsp;<input type=button value=Go onclick=move()>');
 		infowindow.open(map, this);
-		//document.getElementById('end').value = place.name;
+		document.getElementById('dest').value = place.place_id;  //place.name + ", San Francisco, CA 94128, United States";
+
+		direction.end.lat = this.position.toJSON().lat;
+		direction.end.lng = this.position.toJSON().lng;
+		
 		endObj.lat = place.geometry.location.lat();
 		endObj.lng = place.geometry.location.lng();
+		
+//		var url = "http://maps.googleapis.com/maps/api/geocode/json?latlng=" + endObj.lat + "," + endObj.lng+"&sensor=true";
+//		findAddressByLatLon(url, "dest");
 	});
 	
 }
@@ -125,12 +178,71 @@ function getRoute() {
 
 }
 
+function calculateAndDisplayRoute1(directionsService, directionsDisplay) {
+	var start = new google.maps.LatLng(direction.start.lat, direction.start.lng);
+    //var end = new google.maps.LatLng(38.334818, -181.884886);
+    var end = new google.maps.LatLng(direction.end.lat, direction.end.lng);
+    var bounds = new google.maps.LatLngBounds();
+    bounds.extend(start);
+    bounds.extend(end);
+    map.fitBounds(bounds);
+    var request = {
+        origin: start,
+        destination: end,
+        travelMode: google.maps.TravelMode.WALKING
+    };
+    directionsService.route(request, function (response, status) {
+        if (status == google.maps.DirectionsStatus.OK) {
+            directionsDisplay.setDirections(response);
+            directionsDisplay.setMap(map);
+        } else {
+            alert("Directions Request from " + start.toUrlValue(6) + " to " + end.toUrlValue(6) + " failed: " + status);
+        }
+    });
+}
+
+
 function calculateAndDisplayRoute(directionsService, directionsDisplay) {
+//	alert(document.getElementById('src').value);
+//	alert(document.getElementById('dest').value);
+	var startPlaceId = document.getElementById('src').value;
+	var endPlaceId = document.getElementById('dest').value;
+	console.log("startPlaceId = " + startPlaceId);
+	console.log("endPlaceId = " + endPlaceId);
+	
+	
+	var url = "http://maps.googleapis.com/maps/api/geocode/json?latlng=" + direction.start.lat + "," + direction.start.lng+"&sensor=true";
+	findAddressByLatLon(url, 'srcPlaceName');
+	
+	var url = "http://maps.googleapis.com/maps/api/geocode/json?latlng=" + direction.end.lat + "," + direction.end.lng+"&sensor=true";
+	findAddressByLatLon(url, "destPlaceName");
+	
+	var startPlaceName = document.getElementById('srcPlaceName').value;
+	var endPlaceName = document.getElementById('destPlaceName').value;
+	console.log("startPlace Name = " + startPlaceName);
+	console.log("endPlace Name = " + endPlaceName);
+	
+	var startLatLng = new google.maps.LatLng(direction.start.lat, direction.start.lng);
+	var endLatLng = new google.maps.LatLng(direction.end.lat, direction.end.lng);
+	
+	var bounds = new google.maps.LatLngBounds(startLatLng, endLatLng);
+//    bounds.extend(start);
+//    bounds.extend(end);
+    map.fitBounds(bounds);
+    
+    
 	directionsService.route({
-		origin : new google.maps.LatLng(37.615504, -122.389499),
-		destination : new google.maps.LatLng(endObj.lat, endObj.lng),
-		travelMode : google.maps.TravelMode.DRIVING
+		origin : startLatLng,
+		destination : endLatLng,
+//		origin : "Harbor Village Kitchen, International Terminal, South Mcdonnell Road, San Francisco, CA 94128, United States",
+//		destination : "Lori's Diner, 900 North Point Street, San Francisco, CA 94128, United States",
+//		origin : google.maps.Place(startPlaceId),
+//		destination : google.maps.Place(endPlaceId),
+		travelMode : google.maps.TravelMode.WALKING
 	}, function(response, status) {
+		
+		var distance = google.maps.geometry.spherical.computeDistanceBetween (startLatLng, endLatLng);
+		console.log("Distance between two location = " + distance + " m.");
 		if (status === google.maps.DirectionsStatus.OK) {
 			directionsDisplay.setDirections(response);
 		} else {
@@ -180,8 +292,28 @@ window.onload = function () {
 
 
 // When the user clicks anywhere outside of the modal, close it
-window.onclick = function(event) {
-    if (event.target == modal) {
-        modal.style.display = "none";
+//window.onclick = function(event) {
+//    if (event.target == modal) {
+//        modal.style.display = "none";
+//    }
+//}
+
+
+function findAddressByLatLon(url, targetId){
+    var xmlhttp;
+    // compatible with IE7+, Firefox, Chrome, Opera, Safari
+    xmlhttp = new XMLHttpRequest();
+    xmlhttp.onreadystatechange = function(){
+        if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
+        	var obj = JSON.parse(xmlhttp.responseText);
+        	document.getElementById(targetId).value=obj.results[1].formatted_address;
+            console.log("targetId: " + targetId + " " + document.getElementById(targetId).value);
+        }
     }
+    xmlhttp.open("GET", url, false);
+    xmlhttp.send();
 }
+
+//function callback(response) {
+//	console.log(response);
+//}

@@ -14,6 +14,10 @@
 		<input type="hidden" value="${latitude}" id="latitude"/>
 		<input type="hidden" value="${longitude}" id="longitude"/>
 		<input type="hidden" value="${interest}" id="placeType"/>
+		<input type="hidden" value="" id="src"/>
+		<input type="hidden" value="" id="dest"/>
+		<input type="hidden" value="" id="srcPlaceName"/>
+		<input type="hidden" value="" id="destPlaceName"/>
 	</div>
 	<!-- <div id="floating-panel">
 
@@ -51,7 +55,7 @@
 		<!-- Modal content -->
 		<div class="modal-content">
 			<div class="modal-header">
-				<span class="close">×</span>
+				<span class="close">X</span>
 				<h1 align="center">Your Interests</h1>
 			</div>
 			<div class="modal-body">
@@ -78,7 +82,7 @@
 	</div>
 	<div id="map"></div>
 	<script
-		src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAlP_nC8RRwGR5zcsb4PlSA9-MTA7FBtJU&signed_in=true&libraries=places&callback=initMap"
+		src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAlP_nC8RRwGR5zcsb4PlSA9-MTA7FBtJU&signed_in=true&libraries=places&callback=initMap&v=3"
 		async defer></script>
 </body>
 </html>
